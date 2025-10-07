@@ -116,7 +116,7 @@ def delete_doctor(id):
 @jwt_required()
 def get_user_doctors():
     """Get current user's doctors"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     user_doctors = UserDoctor.query.filter_by(user_id=current_user_id).all()
     
@@ -133,7 +133,7 @@ def get_user_doctors():
 @jwt_required()
 def get_user_doctor(id):
     """Get a specific user doctor relationship"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user_doc = UserDoctor.query.filter_by(
         id=id,
         user_id=current_user_id
@@ -149,7 +149,7 @@ def get_user_doctor(id):
 @jwt_required()
 def create_user_doctor():
     """Add a doctor to current user"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('doctor_id'):
@@ -177,7 +177,7 @@ def create_user_doctor():
 @jwt_required()
 def update_user_doctor(id):
     """Update a user doctor relationship"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user_doc = UserDoctor.query.filter_by(
         id=id,
         user_id=current_user_id
@@ -207,7 +207,7 @@ def update_user_doctor(id):
 @jwt_required()
 def delete_user_doctor(id):
     """Delete a user doctor relationship"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user_doc = UserDoctor.query.filter_by(
         id=id,
         user_id=current_user_id

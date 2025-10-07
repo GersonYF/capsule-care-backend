@@ -16,3 +16,11 @@ class Config:
     # Flask
     DEBUG = os.getenv('FLASK_ENV') == 'development'
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-flask-secret-key')
+    
+    # OpenAI
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+    
+    # Upload settings
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', '/app/uploads')
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}

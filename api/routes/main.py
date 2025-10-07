@@ -71,7 +71,7 @@ def health():
 @jwt_required()
 def protected():
     """Example protected route"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     return jsonify({
         'message': 'This is a protected route',
         'user_id': current_user_id

@@ -10,7 +10,7 @@ reminders_bp = Blueprint('reminders', __name__, url_prefix='/api/reminders')
 @jwt_required()
 def get_reminders():
     """Get current user's reminders"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # Get user's medications first
     user_med_ids = [um.id for um in UserMedication.query.filter_by(user_id=current_user_id).all()]
@@ -32,7 +32,7 @@ def get_reminders():
 @jwt_required()
 def get_reminder(id):
     """Get a specific reminder"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     reminder = Reminder.query.get_or_404(id)
     
@@ -50,7 +50,7 @@ def get_reminder(id):
 @jwt_required()
 def create_reminder():
     """Create a new reminder"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('user_medication_id'):
@@ -89,7 +89,7 @@ def create_reminder():
 @jwt_required()
 def update_reminder(id):
     """Update a reminder"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     reminder = Reminder.query.get_or_404(id)
     
     # Verify user owns this reminder
@@ -136,7 +136,7 @@ def update_reminder(id):
 @jwt_required()
 def delete_reminder(id):
     """Delete a reminder"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     reminder = Reminder.query.get_or_404(id)
     
     # Verify user owns this reminder
@@ -153,7 +153,7 @@ def delete_reminder(id):
 @jwt_required()
 def get_reminder_logs(reminder_id):
     """Get logs for a specific reminder"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     reminder = Reminder.query.get_or_404(reminder_id)
     
@@ -182,7 +182,7 @@ def get_reminder_logs(reminder_id):
 @jwt_required()
 def update_reminder_log(log_id):
     """Update a reminder log (mark as acknowledged, etc.)"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     log = ReminderLog.query.get_or_404(log_id)
     

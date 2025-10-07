@@ -134,7 +134,7 @@ def delete_medication(id):
 @jwt_required()
 def get_user_medications():
     """Get current user's medications"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     medications = UserMedication.query.filter_by(
         user_id=current_user_id,
@@ -154,7 +154,7 @@ def get_user_medications():
 @jwt_required()
 def get_user_medication(id):
     """Get a specific user medication"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user_med = UserMedication.query.filter_by(
         id=id,
         user_id=current_user_id
@@ -170,7 +170,7 @@ def get_user_medication(id):
 @jwt_required()
 def create_user_medication():
     """Add a medication to current user"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('medication_id'):
@@ -200,7 +200,7 @@ def create_user_medication():
 @jwt_required()
 def update_user_medication(id):
     """Update a user medication"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user_med = UserMedication.query.filter_by(
         id=id,
         user_id=current_user_id
@@ -236,7 +236,7 @@ def update_user_medication(id):
 @jwt_required()
 def delete_user_medication(id):
     """Soft delete a user medication"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user_med = UserMedication.query.filter_by(
         id=id,
         user_id=current_user_id

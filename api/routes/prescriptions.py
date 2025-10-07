@@ -9,7 +9,7 @@ prescriptions_bp = Blueprint('prescriptions', __name__, url_prefix='/api/prescri
 @jwt_required()
 def get_prescriptions():
     """Get current user's prescriptions"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     status = request.args.get('status')
     
@@ -28,7 +28,7 @@ def get_prescriptions():
 @jwt_required()
 def get_prescription(id):
     """Get a specific prescription"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     prescription = Prescription.query.filter_by(
         id=id,
@@ -41,7 +41,7 @@ def get_prescription(id):
 @jwt_required()
 def create_prescription():
     """Create a new prescription"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     prescription = Prescription(
@@ -72,7 +72,7 @@ def create_prescription():
 @jwt_required()
 def update_prescription(id):
     """Update a prescription"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     prescription = Prescription.query.filter_by(
         id=id,
@@ -117,7 +117,7 @@ def update_prescription(id):
 @jwt_required()
 def delete_prescription(id):
     """Delete a prescription"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     prescription = Prescription.query.filter_by(
         id=id,

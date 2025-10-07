@@ -10,7 +10,7 @@ users_bp = Blueprint('users', __name__, url_prefix='/api/users')
 @jwt_required()
 def get_profile():
     """Get current user's profile"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user = User.query.get_or_404(current_user_id)
     return jsonify(user.to_dict()), 200
 
@@ -18,7 +18,7 @@ def get_profile():
 @jwt_required()
 def update_profile():
     """Update current user's profile"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     user = User.query.get_or_404(current_user_id)
     
     data = request.get_json()
@@ -50,7 +50,7 @@ def update_profile():
 @jwt_required()
 def get_settings():
     """Get current user's settings"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     settings = UserSetting.query.filter_by(user_id=current_user_id).all()
     return jsonify({'settings': [s.to_dict() for s in settings]}), 200
 
@@ -58,7 +58,7 @@ def get_settings():
 @jwt_required()
 def create_setting():
     """Create a new user setting"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('setting_key'):
@@ -100,7 +100,7 @@ def create_setting():
 @jwt_required()
 def update_setting(id):
     """Update a user setting"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     setting = UserSetting.query.filter_by(
         id=id,
@@ -127,7 +127,7 @@ def update_setting(id):
 @jwt_required()
 def delete_setting(id):
     """Delete a user setting"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     setting = UserSetting.query.filter_by(
         id=id,
@@ -144,7 +144,7 @@ def delete_setting(id):
 @jwt_required()
 def get_emergency_contacts():
     """Get current user's emergency contacts"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     contacts = EmergencyContact.query.filter_by(user_id=current_user_id).all()
     return jsonify({'contacts': [c.to_dict() for c in contacts]}), 200
 
@@ -152,7 +152,7 @@ def get_emergency_contacts():
 @jwt_required()
 def get_emergency_contact(id):
     """Get a specific emergency contact"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     contact = EmergencyContact.query.filter_by(
         id=id,
@@ -165,7 +165,7 @@ def get_emergency_contact(id):
 @jwt_required()
 def create_emergency_contact():
     """Create a new emergency contact"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('name'):
@@ -193,7 +193,7 @@ def create_emergency_contact():
 @jwt_required()
 def update_emergency_contact(id):
     """Update an emergency contact"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     contact = EmergencyContact.query.filter_by(
         id=id,
@@ -226,7 +226,7 @@ def update_emergency_contact(id):
 @jwt_required()
 def delete_emergency_contact(id):
     """Delete an emergency contact"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     contact = EmergencyContact.query.filter_by(
         id=id,
@@ -243,7 +243,7 @@ def delete_emergency_contact(id):
 @jwt_required()
 def get_activity_logs():
     """Get current user's activity logs"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)

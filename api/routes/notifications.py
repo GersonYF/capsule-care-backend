@@ -10,7 +10,7 @@ notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/notific
 @jwt_required()
 def get_notifications():
     """Get current user's notifications"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
@@ -41,7 +41,7 @@ def get_notifications():
 @jwt_required()
 def get_notification(id):
     """Get a specific notification"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     notification = Notification.query.filter_by(
         id=id,
@@ -54,7 +54,7 @@ def get_notification(id):
 @jwt_required()
 def mark_as_read(id):
     """Mark a notification as read"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     notification = Notification.query.filter_by(
         id=id,
@@ -74,7 +74,7 @@ def mark_as_read(id):
 @jwt_required()
 def mark_all_as_read():
     """Mark all notifications as read"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     Notification.query.filter_by(
         user_id=current_user_id
@@ -91,7 +91,7 @@ def mark_all_as_read():
 @jwt_required()
 def delete_notification(id):
     """Delete a notification"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     notification = Notification.query.filter_by(
         id=id,
@@ -108,7 +108,7 @@ def delete_notification(id):
 @jwt_required()
 def get_intakes():
     """Get medication intake history"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
@@ -135,7 +135,7 @@ def get_intakes():
 @jwt_required()
 def create_intake():
     """Log a medication intake"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('user_medication_id'):
@@ -169,7 +169,7 @@ def create_intake():
 @jwt_required()
 def update_intake(id):
     """Update a medication intake log"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     intake = MedicationIntake.query.get_or_404(id)
     

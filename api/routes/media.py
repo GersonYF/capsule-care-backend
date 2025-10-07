@@ -9,7 +9,7 @@ media_bp = Blueprint('media', __name__, url_prefix='/api/media')
 @jwt_required()
 def get_media_files():
     """Get current user's media files"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
@@ -40,7 +40,7 @@ def get_media_files():
 @jwt_required()
 def get_media_file(id):
     """Get a specific media file"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     media_file = MediaFile.query.filter_by(
         id=id,
@@ -53,7 +53,7 @@ def get_media_file(id):
 @jwt_required()
 def create_media_file():
     """Create a new media file record"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('file_path'):
@@ -84,7 +84,7 @@ def create_media_file():
 @jwt_required()
 def update_media_file(id):
     """Update a media file record"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     media_file = MediaFile.query.filter_by(
         id=id,
@@ -113,7 +113,7 @@ def update_media_file(id):
 @jwt_required()
 def delete_media_file(id):
     """Delete a media file record"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     media_file = MediaFile.query.filter_by(
         id=id,
