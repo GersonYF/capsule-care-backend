@@ -169,17 +169,49 @@ def get_user_medication(id):
 @medications_bp.route('/user', methods=['POST'])
 @jwt_required()
 def create_user_medication():
-    """Add a medication to current user"""
+    """Add a medication to current user
+    
+    If medication doesn't exist in catalog, it will be created automatically.
+    This ensures all medications are properly cataloged while allowing users
+    to add any medication they need.
+    """
     current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
-    if not data.get('medication_id'):
-        return jsonify({'error': 'medication_id is required'}), 400
+    # Validate required fields
+    if not data.get('custom_name'):
+        return jsonify({'error': 'Medication name is required'}), 400
     
+    medication_name = data['custom_name'].strip()
+    medication_id = data.get('medication_id')
+    
+    # If medication_id provided, use it; otherwise search for or create medication
+    if medication_id:
+        medication = Medication.query.get(medication_id)
+        if not medication:
+            return jsonify({'error': 'Medication not found'}), 404
+    else:
+        # Search for existing medication by name (case-insensitive)
+        medication = Medication.query.filter(
+            db.func.lower(Medication.name) == medication_name.lower()
+        ).filter_by(is_active=True).first()
+        
+        # If medication doesn't exist, create it
+        if not medication:
+            medication = Medication(
+                name=medication_name,
+                strength=data.get('prescribed_dosage'),  # Use prescribed dosage as default strength
+                description=f"Medication added by user",
+                requires_prescription=True  # Default to requiring prescription for safety
+            )
+            db.session.add(medication)
+            db.session.flush()  # Get the medication ID without committing yet
+    
+    # Create user medication record
     user_med = UserMedication(
         user_id=current_user_id,
-        medication_id=data['medication_id'],
-        custom_name=data.get('custom_name'),
+        medication_id=medication.id,
+        custom_name=data['custom_name'],
         prescribed_dosage=data.get('prescribed_dosage'),
         prescribed_frequency=data.get('prescribed_frequency'),
         start_date=data.get('start_date'),
@@ -191,9 +223,13 @@ def create_user_medication():
     db.session.add(user_med)
     db.session.commit()
     
+    result = user_med.to_dict()
+    result['medication'] = medication.to_dict()
+    
     return jsonify({
         'message': 'Medication added to user successfully',
-        'user_medication': user_med.to_dict()
+        'user_medication': result,
+        'medication_created': medication_id is None  # Indicate if we created a new medication
     }), 201
 
 @medications_bp.route('/user/<int:id>', methods=['PUT'])
@@ -207,6 +243,14 @@ def update_user_medication(id):
     ).first_or_404()
     
     data = request.get_json()
+    
+    if 'medication_id' in data:
+        # If updating medication_id, verify it exists (or is None)
+        if data['medication_id'] is not None:
+            medication = Medication.query.get(data['medication_id'])
+            if not medication:
+                return jsonify({'error': 'Medication not found'}), 404
+        user_med.medication_id = data['medication_id']
     
     if 'custom_name' in data:
         user_med.custom_name = data['custom_name']
@@ -227,9 +271,13 @@ def update_user_medication(id):
     
     db.session.commit()
     
+    result = user_med.to_dict()
+    if user_med.medication:
+        result['medication'] = user_med.medication.to_dict()
+    
     return jsonify({
         'message': 'User medication updated successfully',
-        'user_medication': user_med.to_dict()
+        'user_medication': result
     }), 200
 
 @medications_bp.route('/user/<int:id>', methods=['DELETE'])
