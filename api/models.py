@@ -74,12 +74,30 @@ class Medication(db.Model):
     barcode = db.Column(db.String(100))
     image_url = db.Column(db.Text)
     requires_prescription = db.Column(db.Boolean, default=True)
+    
+    # NUEVO: Campo de criticidad
+    criticality = db.Column(
+        db.Enum('low', 'medium', 'high', 'critical', name='medication_criticality_enum'),
+        default='medium',
+        nullable=False
+    )
+    
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user_medications = db.relationship('UserMedication', back_populates='medication', cascade='all, delete-orphan')
+
+    def get_criticality_weight(self):
+        """Retorna el peso numérico de la criticidad para métricas"""
+        weights = {
+            'low': 1,
+            'medium': 2,
+            'high': 3,
+            'critical': 4
+        }
+        return weights.get(self.criticality, 2)
     
     def to_dict(self):
         return {
@@ -98,6 +116,7 @@ class Medication(db.Model):
             'barcode': self.barcode,
             'image_url': self.image_url,
             'requires_prescription': self.requires_prescription,
+            'criticality': self.criticality,  # NUEVO
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

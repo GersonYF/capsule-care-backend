@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
-from models import Medication, UserMedication
+from datetime import datetime, timedelta
+from models import Medication, UserMedication, MedicationIntake
+from sqlalchemy import func
 
 medications_bp = Blueprint('medications', __name__, url_prefix='/api/medications')
 
@@ -51,6 +53,12 @@ def create_medication():
     if not data.get('name'):
         return jsonify({'error': 'Medication name is required'}), 400
     
+    # Validar criticidad si se proporciona
+    valid_criticalities = ['low', 'medium', 'high', 'critical']
+    criticality = data.get('criticality', 'medium')
+    if criticality not in valid_criticalities:
+        return jsonify({'error': f'Invalid criticality. Must be one of: {", ".join(valid_criticalities)}'}), 400
+    
     medication = Medication(
         name=data['name'],
         generic_name=data.get('generic_name'),
@@ -65,7 +73,8 @@ def create_medication():
         storage_instructions=data.get('storage_instructions'),
         barcode=data.get('barcode'),
         image_url=data.get('image_url'),
-        requires_prescription=data.get('requires_prescription', True)
+        requires_prescription=data.get('requires_prescription', True),
+        criticality=criticality  # NUEVO
     )
     
     db.session.add(medication)
@@ -111,6 +120,13 @@ def update_medication(id):
         medication.image_url = data['image_url']
     if 'requires_prescription' in data:
         medication.requires_prescription = data['requires_prescription']
+    
+    # NUEVO: Actualizar criticidad con validación
+    if 'criticality' in data:
+        valid_criticalities = ['low', 'medium', 'high', 'critical']
+        if data['criticality'] not in valid_criticalities:
+            return jsonify({'error': f'Invalid criticality. Must be one of: {", ".join(valid_criticalities)}'}), 400
+        medication.criticality = data['criticality']
     
     db.session.commit()
     
@@ -169,45 +185,41 @@ def get_user_medication(id):
 @medications_bp.route('/user', methods=['POST'])
 @jwt_required()
 def create_user_medication():
-    """Add a medication to current user
-    
-    If medication doesn't exist in catalog, it will be created automatically.
-    This ensures all medications are properly cataloged while allowing users
-    to add any medication they need.
-    """
+    """Add a medication to current user"""
     current_user_id = int(get_jwt_identity())
     data = request.get_json()
     
-    # Validate required fields
     if not data.get('custom_name'):
         return jsonify({'error': 'Medication name is required'}), 400
     
     medication_name = data['custom_name'].strip()
     medication_id = data.get('medication_id')
     
-    # If medication_id provided, use it; otherwise search for or create medication
     if medication_id:
         medication = Medication.query.get(medication_id)
         if not medication:
             return jsonify({'error': 'Medication not found'}), 404
     else:
-        # Search for existing medication by name (case-insensitive)
         medication = Medication.query.filter(
             db.func.lower(Medication.name) == medication_name.lower()
         ).filter_by(is_active=True).first()
         
-        # If medication doesn't exist, create it
         if not medication:
+            criticality = data.get('criticality', 'medium')
+            valid_criticalities = ['low', 'medium', 'high', 'critical']
+            if criticality not in valid_criticalities:
+                criticality = 'medium'
+            
             medication = Medication(
                 name=medication_name,
-                strength=data.get('prescribed_dosage'),  # Use prescribed dosage as default strength
+                strength=data.get('prescribed_dosage'),
                 description=f"Medication added by user",
-                requires_prescription=True  # Default to requiring prescription for safety
+                requires_prescription=True,
+                criticality=criticality
             )
             db.session.add(medication)
-            db.session.flush()  # Get the medication ID without committing yet
+            db.session.flush()
     
-    # Create user medication record
     user_med = UserMedication(
         user_id=current_user_id,
         medication_id=medication.id,
@@ -229,7 +241,7 @@ def create_user_medication():
     return jsonify({
         'message': 'Medication added to user successfully',
         'user_medication': result,
-        'medication_created': medication_id is None  # Indicate if we created a new medication
+        'medication_created': medication_id is None
     }), 201
 
 @medications_bp.route('/user/<int:id>', methods=['PUT'])
@@ -294,3 +306,243 @@ def delete_user_medication(id):
     db.session.commit()
     
     return jsonify({'message': 'User medication deleted successfully'}), 200
+
+@medications_bp.route('/user/metrics', methods=['GET'])
+@jwt_required()
+def get_user_medication_metrics():
+    """Get user medication adherence metrics weighted by criticality"""
+    current_user_id = int(get_jwt_identity())
+    
+    # Obtener rango de fechas (últimos 30 días por defecto)
+    days = request.args.get('days', 30, type=int)
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=days)
+    
+    # Obtener medicamentos activos del usuario con su criticidad
+    user_meds = db.session.query(
+        UserMedication,
+        Medication
+    ).join(
+        Medication,
+        UserMedication.medication_id == Medication.id
+    ).filter(
+        UserMedication.user_id == current_user_id,
+        UserMedication.is_active == True
+    ).all()
+    
+    if not user_meds:
+        return jsonify({
+            'period_days': days,
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'overall_weighted_adherence': 0,
+            'overall_simple_adherence': 0,
+            'total_medications': 0,
+            'total_taken': 0,
+            'total_expected': 0,
+            'total_missed_critical': 0,
+            'medications': []
+        }), 200
+    
+    def get_expected_doses_per_day(frequency):
+        """Calculate expected doses per day from frequency string"""
+        if not frequency:
+            return 1
+        
+        freq_lower = frequency.lower().strip()
+        
+        if any(term in freq_lower for term in ['dos veces', '2 veces', 'twice']):
+            return 2
+        if any(term in freq_lower for term in ['tres veces', '3 veces', 'three times']):
+            return 3
+        if any(term in freq_lower for term in ['cuatro veces', '4 veces', 'four times']):
+            return 4
+        if 'cada 12 horas' in freq_lower or 'every 12 hours' in freq_lower:
+            return 2
+        if 'cada 8 horas' in freq_lower or 'every 8 hours' in freq_lower:
+            return 3
+        if 'cada 6 horas' in freq_lower or 'every 6 hours' in freq_lower:
+            return 4
+        
+        return 1
+    
+    total_weight = 0
+    total_weighted_taken = 0
+    total_simple_taken = 0
+    total_expected = 0
+    total_missed_critical = 0
+    medication_stats = []
+    
+    for user_med, medication in user_meds:
+        weight = medication.get_criticality_weight()
+        doses_per_day = get_expected_doses_per_day(user_med.prescribed_frequency)
+        expected_total = doses_per_day * days
+        
+        # Obtener estadísticas de intake
+        intakes = db.session.query(
+            MedicationIntake.status,
+            func.count(MedicationIntake.id).label('count')
+        ).filter(
+            MedicationIntake.user_medication_id == user_med.id,
+            MedicationIntake.created_at >= start_date,
+            MedicationIntake.created_at <= end_date
+        ).group_by(MedicationIntake.status).all()
+        
+        taken = sum(i.count for i in intakes if i.status == 'taken')
+        missed = sum(i.count for i in intakes if i.status == 'missed')
+        skipped = sum(i.count for i in intakes if i.status == 'skipped')
+        total_recorded = taken + missed + skipped
+        
+        # Usar el menor entre expected_total y total_recorded para evitar sobre-estimación
+        effective_expected = min(expected_total, max(total_recorded, expected_total))
+        
+        simple_adherence = (taken / effective_expected * 100) if effective_expected > 0 else 0
+        
+        # Calcular pesos ponderados
+        total_weight += weight * effective_expected
+        total_weighted_taken += taken * weight
+        total_simple_taken += taken
+        total_expected += effective_expected
+        
+        # Contar dosis críticas perdidas
+        if medication.criticality == 'critical':
+            total_missed_critical += missed
+        
+        medication_stats.append({
+            'medication_id': medication.id,
+            'user_medication_id': user_med.id,
+            'medication_name': medication.name,
+            'custom_name': user_med.custom_name,
+            'criticality': medication.criticality,
+            'criticality_weight': weight,
+            'doses_per_day': doses_per_day,
+            'simple_adherence_rate': round(simple_adherence, 2),
+            'taken': taken,
+            'missed': missed,
+            'skipped': skipped,
+            'expected': effective_expected,
+            'total_recorded': total_recorded
+        })
+    
+    # Calcular adherencias generales
+    overall_simple_adherence = (total_simple_taken / total_expected * 100) if total_expected > 0 else 0
+    overall_weighted_adherence = (total_weighted_taken / total_weight) if total_weight > 0 else 0
+    
+    return jsonify({
+        'period_days': days,
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat(),
+        'overall_weighted_adherence': round(overall_weighted_adherence * 100, 2),
+        'overall_simple_adherence': round(overall_simple_adherence, 2),
+        'total_medications': len(user_meds),
+        'total_taken': total_simple_taken,
+        'total_expected': total_expected,
+        'total_missed_critical': total_missed_critical,
+        'medications': sorted(medication_stats, key=lambda x: x['criticality_weight'], reverse=True)
+    }), 200
+
+
+@medications_bp.route('/user/metrics/daily', methods=['GET'])
+@jwt_required()
+def get_daily_metrics():
+    """Get daily metrics for the last N days"""
+    current_user_id = int(get_jwt_identity())
+    
+    days = request.args.get('days', 7, type=int)
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days - 1)
+    
+    # Obtener medicamentos activos del usuario
+    user_meds = db.session.query(
+        UserMedication,
+        Medication
+    ).join(
+        Medication,
+        UserMedication.medication_id == Medication.id
+    ).filter(
+        UserMedication.user_id == current_user_id,
+        UserMedication.is_active == True
+    ).all()
+    
+    if not user_meds:
+        return jsonify({
+            'days': [],
+            'period_days': days
+        }), 200
+    
+    def get_expected_doses_per_day(frequency):
+        if not frequency:
+            return 1
+        
+        freq_lower = frequency.lower().strip()
+        
+        if any(term in freq_lower for term in ['dos veces', '2 veces', 'twice']):
+            return 2
+        if any(term in freq_lower for term in ['tres veces', '3 veces', 'three times']):
+            return 3
+        if any(term in freq_lower for term in ['cuatro veces', '4 veces', 'four times']):
+            return 4
+        if 'cada 12 horas' in freq_lower or 'every 12 hours' in freq_lower:
+            return 2
+        if 'cada 8 horas' in freq_lower or 'every 8 hours' in freq_lower:
+            return 3
+        if 'cada 6 horas' in freq_lower or 'every 6 hours' in freq_lower:
+            return 4
+        
+        return 1
+    
+    daily_metrics = []
+    
+    for day_offset in range(days):
+        current_day = start_date + timedelta(days=day_offset)
+        day_start = datetime.combine(current_day, datetime.min.time())
+        day_end = datetime.combine(current_day, datetime.max.time())
+        
+        day_weight = 0
+        day_weighted_taken = 0
+        day_simple_taken = 0
+        day_expected = 0
+        day_missed_critical = 0
+        
+        for user_med, medication in user_meds:
+            weight = medication.get_criticality_weight()
+            doses_per_day = get_expected_doses_per_day(user_med.prescribed_frequency)
+            
+            # Obtener intakes del día
+            day_intakes = db.session.query(
+                MedicationIntake.status,
+                func.count(MedicationIntake.id).label('count')
+            ).filter(
+                MedicationIntake.user_medication_id == user_med.id,
+                MedicationIntake.status_at >= day_start,
+                MedicationIntake.status_at <= day_end
+            ).group_by(MedicationIntake.status).all()
+            
+            taken = sum(i.count for i in day_intakes if i.status == 'taken')
+            missed = sum(i.count for i in day_intakes if i.status == 'missed')
+            
+            day_weight += weight * doses_per_day
+            day_weighted_taken += taken * weight
+            day_simple_taken += taken
+            day_expected += doses_per_day
+            
+            if medication.criticality == 'critical':
+                day_missed_critical += missed
+        
+        simple_adherence = (day_simple_taken / day_expected * 100) if day_expected > 0 else 0
+        weighted_adherence = (day_weighted_taken / day_weight * 100) if day_weight > 0 else 0
+        
+        daily_metrics.append({
+            'date': current_day.isoformat(),
+            'taken_count': day_simple_taken,
+            'expected_count': day_expected,
+            'simple_adherence': round(simple_adherence, 2),
+            'weighted_adherence': round(weighted_adherence, 2),
+            'missed_critical': day_missed_critical,
+            'is_compliant': weighted_adherence >= 80
+        })
+    
+    return jsonify({
+        'days': daily_metrics,
+        'period_days': days
+    }), 200

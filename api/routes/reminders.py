@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 from models import Reminder, ReminderLog, UserMedication
+from tasks.notification_tasks import schedule_reminder
+from datetime import datetime
 
 reminders_bp = Blueprint('reminders', __name__, url_prefix='/api/reminders')
 
@@ -79,6 +81,19 @@ def create_reminder():
     
     db.session.add(reminder)
     db.session.commit()
+    
+    # Programar el recordatorio en Celery si está habilitado
+    if reminder.event_enabled and reminder.reminder_time and reminder.start_date:
+        try:
+            # Programar la primera notificación
+            first_reminder_datetime = datetime.combine(
+                reminder.start_date,
+                reminder.reminder_time
+            )
+            if first_reminder_datetime > datetime.utcnow():
+                schedule_reminder.delay(reminder.id, first_reminder_datetime)
+        except Exception as e:
+            print(f"Error scheduling reminder: {e}")
     
     return jsonify({
         'message': 'Reminder created successfully',
@@ -206,4 +221,26 @@ def update_reminder_log(log_id):
     return jsonify({
         'message': 'Reminder log updated successfully',
         'log': log.to_dict()
+    }), 200
+
+@reminders_bp.route('/test-notification/<int:id>', methods=['POST'])
+@jwt_required()
+def test_notification(id):
+    """Enviar una notificación de prueba para un recordatorio"""
+    current_user_id = int(get_jwt_identity())
+    
+    reminder = Reminder.query.get_or_404(id)
+    
+    # Verify user owns this reminder
+    if reminder.user_medication.user_id != current_user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    from tasks.notification_tasks import send_reminder_notification
+    
+    # Enviar notificación inmediatamente
+    result = send_reminder_notification.delay(reminder.id)
+    
+    return jsonify({
+        'message': 'Test notification scheduled',
+        'task_id': result.id
     }), 200
