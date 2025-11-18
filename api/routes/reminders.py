@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.extensions import db
 from api.models import Reminder, ReminderLog, UserMedication
-from tasks.notification_tasks import schedule_reminder
+from api.tasks.notification_tasks import schedule_reminder
 from datetime import datetime
 
 reminders_bp = Blueprint('reminders', __name__, url_prefix='/api/reminders')
@@ -235,7 +235,7 @@ def test_notification(id):
     if reminder.user_medication.user_id != current_user_id:
         return jsonify({'error': 'Unauthorized'}), 403
     
-    from tasks.notification_tasks import send_reminder_notification
+    from api.tasks.notification_tasks import send_reminder_notification
     
     # Enviar notificación inmediatamente
     result = send_reminder_notification.delay(reminder.id)
