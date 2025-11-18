@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
-from models import Reminder, ReminderLog, UserMedication
+from api.extensions import db
+from api.models import Reminder, ReminderLog, UserMedication
 from tasks.notification_tasks import schedule_reminder
 from datetime import datetime
 

@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
+from api.extensions import db
 from datetime import datetime, timedelta
-from models import Medication, UserMedication, MedicationIntake
+from api.models import Medication, UserMedication, MedicationIntake
 from sqlalchemy import func
 
 medications_bp = Blueprint('medications', __name__, url_prefix='/api/medications')

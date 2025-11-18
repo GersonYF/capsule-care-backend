@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
-from models import Notification, MedicationIntake
+from api.extensions import db
+from api.models import Notification, MedicationIntake
 from datetime import datetime
 
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/notifications')
@@ -114,7 +114,7 @@ def get_intakes():
     per_page = request.args.get('per_page', 20, type=int)
     
     # Get user's medication intakes through user_medications
-    from models import UserMedication
+    from api.models import UserMedication
     user_med_ids = [um.id for um in UserMedication.query.filter_by(user_id=current_user_id).all()]
     
     pagination = MedicationIntake.query.filter(
@@ -142,7 +142,7 @@ def create_intake():
         return jsonify({'error': 'user_medication_id is required'}), 400
     
     # Verify user owns the medication
-    from models import UserMedication
+    from api.models import UserMedication
     user_med = UserMedication.query.get_or_404(data['user_medication_id'])
     if user_med.user_id != current_user_id:
         return jsonify({'error': 'Unauthorized'}), 403
@@ -174,7 +174,7 @@ def update_intake(id):
     intake = MedicationIntake.query.get_or_404(id)
     
     # Verify user owns this intake
-    from models import UserMedication
+    from api.models import UserMedication
     user_med = UserMedication.query.get_or_404(intake.user_medication_id)
     if user_med.user_id != current_user_id:
         return jsonify({'error': 'Unauthorized'}), 403

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
-from models import User, UserSetting, EmergencyContact, ActivityLog
+from api.extensions import db
+from api.models import User, UserSetting, EmergencyContact, ActivityLog
 from datetime import datetime
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')

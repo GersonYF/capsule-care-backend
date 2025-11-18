@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
-from models import Prescription
+from api.extensions import db
+from api.models import Prescription
 
 prescriptions_bp = Blueprint('prescriptions', __name__, url_prefix='/api/prescriptions')
 

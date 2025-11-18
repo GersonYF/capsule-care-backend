@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
-from extensions import db
-from models import (
+from api.extensions import db
+from api.models import (
     Reminder, ReminderLog, Notification, UserMedication,
     User, Medication, EmergencyContact
 )

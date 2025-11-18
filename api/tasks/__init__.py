@@ -1,1 +1,1 @@
-from extensions import celery
+from api.extensions import celery
