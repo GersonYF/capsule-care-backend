@@ -1,6 +1,6 @@
 from flask import Flask
-from config import Config
-from extensions import db, jwt, cors
+from api.config import Config
+from api.extensions import db, jwt, cors
 import os
 
 def create_app(config_class=Config):
