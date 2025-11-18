@@ -1,7 +1,7 @@
 import os
 from celery import Celery
 from celery.schedules import crontab
-from app import app
+from api.app import app
 
 # Initialize Celery with new-style config keys
 celery = Celery('medication_reminders')
