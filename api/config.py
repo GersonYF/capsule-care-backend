@@ -22,7 +22,7 @@ class Config:
     
     # Upload settings
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
-    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', '/app/uploads')
+    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', '/tmp/uploads')
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
     CELERY_BROKER_URL = "redis://redis:6379/0"

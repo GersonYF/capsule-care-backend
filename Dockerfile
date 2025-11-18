@@ -34,9 +34,6 @@ USER appuser
 
 ENV PYTHONPATH=/app
 
-RUN mkdir -p /app/uploads && chown -R nobody:nogroup /app/uploads
-USER nobody
-
 
 # Run supervisor
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
