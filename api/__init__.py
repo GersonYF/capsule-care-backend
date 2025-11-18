@@ -17,16 +17,16 @@ def create_app(config_class=Config):
     cors.init_app(app)
     
     # Register blueprints
-    from routes.main import main_bp
-    from routes.auth import auth_bp
-    from routes.medications import medications_bp
-    from routes.doctors import doctors_bp
-    from routes.reminders import reminders_bp
-    from routes.prescriptions import prescriptions_bp
-    from routes.users import users_bp
-    from routes.notifications import notifications_bp
-    from routes.media import media_bp
-    from routes.ai import ai_bp
+    from api.routes.main import main_bp
+    from api.routes.auth import auth_bp
+    from api.routes.medications import medications_bp
+    from api.routes.doctors import doctors_bp
+    from api.routes.reminders import reminders_bp
+    from api.routes.prescriptions import prescriptions_bp
+    from api.routes.users import users_bp
+    from api.routes.notifications import notifications_bp
+    from api.routes.media import media_bp
+    from api.routes.ai import ai_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
