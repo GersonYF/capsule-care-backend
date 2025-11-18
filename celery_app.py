@@ -10,6 +10,10 @@ celery = Celery('medication_reminders')
 celery.conf.broker_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
 celery.conf.result_backend = os.getenv('REDIS_URL', 'redis://redis:6379/0')
 
+# Use Redis-based scheduler (to avoid filesystem writes)
+celery.conf.beat_scheduler = 'redbeat.RedBeatScheduler'
+celery.conf.redbeat_redis_url = celery.conf.broker_url
+
 # Additional configuration
 celery.conf.update(
     task_serializer='json',
@@ -42,4 +46,3 @@ celery.conf.beat_schedule = {
         'schedule': crontab(hour=2, minute=0),
     },
 }
-
