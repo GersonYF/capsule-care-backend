@@ -32,5 +32,7 @@ EXPOSE 8000
 # Switch user
 USER appuser
 
+ENV PYTHONPATH=/app
+
 # Run supervisor
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
