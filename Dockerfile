@@ -33,4 +33,4 @@ EXPOSE 8000
 USER appuser
 
 # Run supervisor
-CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]
