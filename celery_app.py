@@ -16,12 +16,19 @@ celery.conf.redbeat_redis_url = celery.conf.broker_url
 
 # Additional configuration
 celery.conf.update(
+    # existing configs
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
+    
+    # Worker specific config
+    worker_prefetch_multiplier=1,  # Limits number of unacknowledged tasks
+    worker_max_tasks_per_child=100,  # Restart worker child processes to avoid memory leaks
+    broker_connection_retry_on_startup=True,  # Ensure broker is retried on startup
 )
+
 
 # Task context integration with Flask
 class FlaskTask(celery.Task):
