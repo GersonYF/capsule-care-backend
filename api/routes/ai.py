@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from api.extensions import db
 from api.models import MediaFile
-from utils.image_analyzer import ImageAnalyzer
+from api.utils.image_analyzer import ImageAnalyzer
 import os
 from datetime import datetime
 
