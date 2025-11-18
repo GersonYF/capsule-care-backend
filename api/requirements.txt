@@ -10,3 +10,4 @@ redis==5.0.1
 python-dateutil==2.8.2
 openai==1.12.0
 Pillow==10.2.0
+supervisor
