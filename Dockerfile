@@ -1,35 +1,36 @@
-FROM python:3.10-slim
+# Base image
+FROM python:3.11-slim
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y postgresql redis-server supervisor && \
-    apt-get clean
+# Install system packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    postgresql \
+    redis-server \
+    supervisor \
+    && apt-get clean
 
-# Create directories
-RUN mkdir -p /var/log/supervisor
+# Create a non-root user
+RUN useradd -m appuser
 
-# Set up work directory
+# Create working directory
 WORKDIR /app
 
-# Copy project files
+# Copy app code
 COPY . .
 
-# Install Python packages
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install gunicorn
 
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV PYTHONUNBUFFERED=1
-ENV POSTGRES_USER=appuser
-ENV POSTGRES_PASSWORD=apppassword
-ENV POSTGRES_DB=appdb
+# Supervisor logs
+RUN mkdir -p /var/log/supervisor
 
-# Copy Supervisor config
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Expose ports
+# Expose port for Flask
 EXPOSE 8000
 
-# Start Supervisor
-CMD ["/usr/bin/supervisord"]
+# Switch user
+USER appuser
 
+# Run supervisor
+CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
